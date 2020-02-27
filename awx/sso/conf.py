@@ -1024,7 +1024,7 @@ register(
     label=_('GitHub Enterprise Organization OAuth2 Team Map'),
     help_text=SOCIAL_AUTH_TEAM_MAP_HELP_TEXT,
     category=_('GitHub Enterprise Organization OAuth2'),
-    category_slug='github-enterprise-org]',
+    category_slug='github-enterprise-org',
     placeholder=SOCIAL_AUTH_TEAM_MAP_PLACEHOLDER,
 )
 
