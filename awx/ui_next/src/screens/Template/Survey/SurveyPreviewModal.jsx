@@ -41,9 +41,9 @@ function SurveyPreviewModal({
           <div key={q.variable}>
             <strong>{q.question_name}</strong>
             {['text', 'integer', 'float'].includes(q.type) && (
-              <FormGroup fieldId="text">
+              <FormGroup fieldId={`survey-preview-text-${q.variable}`}>
                 <TextInput
-                  type="text"
+                  id={`survey-preview-text-${q.variable}`}
                   value={q.default}
                   isDisabled
                   aria-label={i18n._(t`Text`)}
@@ -51,8 +51,10 @@ function SurveyPreviewModal({
               </FormGroup>
             )}
             {['textarea'].includes(q.type) && (
-              <FormGroup fieldId="text area">
+              <FormGroup fieldId={`survey-preview-textArea-${q.variable}`}>
                 <TextArea
+                  id={`survey-preview-textArea-${q.variable}`}
+                  type={`survey-preview-textArea-${q.variable}`}
                   value={q.default}
                   aria-label={i18n._(t`Text Area`)}
                   disabled
@@ -60,23 +62,30 @@ function SurveyPreviewModal({
               </FormGroup>
             )}
             {['password'].includes(q.type) && (
-              <FormGroup fieldId="password">
-                <InputGroup>
-                  <Button onClick={() => setIsPassword(!isPassword)}>
+              <FormGroup fieldId={`survey-preview-password-${q.variable}`}>
+                <InputGroup id={`survey-preview-password-${q.variable}`}>
+                  <Button isDisabled onClick={() => setIsPassword(!isPassword)}>
                     {isPassword ? 'Show' : 'Hide'}
                   </Button>
                   <TextInput
                     aria-label={i18n._(t`Password`)}
                     type={isPassword ? 'password' : 'text'}
-                    value={q.default}
+                    value={
+                      !isPassword
+                        ? i18n._(t`encrypted`).toUpperCase()
+                        : q.default
+                    }
                     isDisabled
                   />
                 </InputGroup>
               </FormGroup>
             )}
             {['multiplechoice'].includes(q.type) && (
-              <FormGroup fieldId="multiple choice">
+              <FormGroup
+                fieldId={`survey-preview-multipleChoice-${q.variable}`}
+              >
                 <Select
+                  id={`survey-preview-multipleChoice-${q.variable}`}
                   isDisabled
                   placeholderText={q.default}
                   onToggle={() => {}}
@@ -84,8 +93,11 @@ function SurveyPreviewModal({
               </FormGroup>
             )}
             {['multiselect'].includes(q.type) && (
-              <FormGroup fieldId="multiselect">
-                <InputGroup aria-label={i18n._(t`Multi-Select`)}>
+              <FormGroup fieldId={`survey-preview-multiSelect-${q.variable}`}>
+                <InputGroup
+                  aria-label={i18n._(t`Multi-Select`)}
+                  id={`survey-preview-multiSelect-${q.variable}`}
+                >
                   <InputGroupText>
                     {q.default.split('\n').map(chip => (
                       <Chip key={chip} isReadOnly>
