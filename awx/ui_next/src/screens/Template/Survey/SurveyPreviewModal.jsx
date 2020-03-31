@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { withI18n } from '@lingui/react';
 import styled from 'styled-components';
 import { t } from '@lingui/macro';
+import { PasswordField } from '@components/FormField';
+import { Formik, useField, Field } from 'formik';
+import { FormColumnLayout } from '@components/FormLayout';
 
 import {
   Chip as _Chip,
@@ -29,6 +32,8 @@ function SurveyPreviewModal({
   i18n,
 }) {
   const [isPassword, setIsPassword] = useState(true);
+  // const [passwordField] = useField('password');
+  // console.log(passwordField);
   return (
     <Modal
       title={i18n._(t`Survey Preview`)}
@@ -36,7 +41,17 @@ function SurveyPreviewModal({
       onClose={() => onToggleModalOpen(false)}
       isSmall
     >
-      <Form>
+      {/* <Formik
+        onSumbit={() => {}}
+        initialValues={{
+          password: questions.filter(q =>
+            q.type === 'password' ? q.default : null
+          ),
+        }}
+      >
+        {formik => ( */}
+      <Form // autoComplete="off" onSubmit={formik.handleSubmit}>
+      >
         {questions.map(q => (
           <div key={q.variable}>
             <strong>{q.question_name}</strong>
@@ -62,12 +77,31 @@ function SurveyPreviewModal({
               </FormGroup>
             )}
             {['password'].includes(q.type) && (
+              // <FormGroup fieldId={`survey-preview-password-${q.variable}`}>
+              // formik.values.password.map((pwdField, index) => (
+              //   <Field name="password">
+              //     {({ field }) => (
+              //       console.log(field, 'field'),
+              //       (
+              //         <PasswordField
+              //           id={`survey-preview-password-${q.variable}`}
+              //           name="password"
+              //           label=""
+              //           validate={null}
+              //           value={field.value[index]}
+              //         />
+              //       )
+              //     )}
+              //   </Field>
+              // ))
+              // </FormGroup>
               <FormGroup fieldId={`survey-preview-password-${q.variable}`}>
-                <InputGroup id={`survey-preview-password-${q.variable}`}>
-                  <Button isDisabled onClick={() => setIsPassword(!isPassword)}>
+                <InputGroup>
+                  <Button onClick={() => setIsPassword(!isPassword)}>
                     {isPassword ? 'Show' : 'Hide'}
                   </Button>
                   <TextInput
+                    id={`survey-preview-password-${q.variable}`}
                     aria-label={i18n._(t`Password`)}
                     type={isPassword ? 'password' : 'text'}
                     value={
@@ -111,6 +145,8 @@ function SurveyPreviewModal({
           </div>
         ))}
       </Form>
+      {/* )}
+      </Formik> */}
     </Modal>
   );
 }
