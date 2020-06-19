@@ -551,7 +551,7 @@ function JobTemplateForm({
                 <SubFormLayout>
                   {allowCallbacks && (
                     <>
-                      <Title size="md">
+                      <Title size="md" headingLevel="h4">
                         {i18n._(t`Provisioning Callback details`)}
                       </Title>
                       <FormColumnLayout>
@@ -576,13 +576,14 @@ function JobTemplateForm({
                           }
                         />
                       </FormColumnLayout>
-
-                      <br />
                     </>
                   )}
+
+                  {allowCallbacks && enableWebhooks && (<br />)}
+
                   {enableWebhooks && (
                     <>
-                      <Title size="md">{i18n._(t`Webhook details`)}</Title>
+                      <Title size="md" headingLevel="h4">{i18n._(t`Webhook details`)}</Title>
                       <FormColumnLayout>
                         <WebhookSubForm
                           enableWebhooks={enableWebhooks}
