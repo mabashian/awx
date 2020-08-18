@@ -19,13 +19,14 @@ import useRequest from '../../util/useRequest';
 import JobDetail from './JobDetail';
 import JobOutput from './JobOutput';
 import { WorkflowOutput } from './WorkflowOutput';
+import useWsJob from './useWsJob';
 import { JOB_TYPE_URL_SEGMENTS } from '../../constants';
 
 function Job({ i18n, lookup, setBreadcrumb }) {
   const { id, type } = useParams();
   const match = useRouteMatch();
 
-  const { isLoading, error, request: fetchJob, result: job } = useRequest(
+  const { isLoading, error, request: fetchJob, result } = useRequest(
     useCallback(async () => {
       const { data } = await JobsAPI.readDetail(id, type);
       setBreadcrumb(data);
@@ -37,6 +38,8 @@ function Job({ i18n, lookup, setBreadcrumb }) {
   useEffect(() => {
     fetchJob();
   }, [fetchJob]);
+
+  const job = useWsJob(result);
 
   let jobType;
   if (job) {
