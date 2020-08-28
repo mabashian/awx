@@ -43,7 +43,7 @@ function canLaunchWithoutPrompt(launchData) {
   );
 }
 
-function NodeModal({ askLinkType, i18n, onSave, title, onValidate }) {
+function NodeModal({ askLinkType, i18n, onSave, title }) {
   const history = useHistory();
   const dispatch = useContext(WorkflowDispatchContext);
   const { nodeToEdit } = useContext(WorkflowStateContext);
@@ -194,8 +194,12 @@ function NodeModal({ askLinkType, i18n, onSave, title, onValidate }) {
 
   useEffect(() => {
     if (Object.values(promptStepsInitialValues).length > 0) {
-      console.log('here');
-      resetForm({ values: { ...promptStepsInitialValues } });
+      resetForm({
+        values: {
+          ...promptStepsInitialValues,
+          verbosity: promptStepsInitialValues.verbosity.toString(),
+        },
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [launchConfig]);
@@ -246,7 +250,6 @@ function NodeModal({ askLinkType, i18n, onSave, title, onValidate }) {
   steps.forEach((step, n) => {
     step.id = n + 1;
   });
-  console.log(values, 'values');
   const CustomFooter = (
     <WizardFooter>
       <WizardContextConsumer>
@@ -298,7 +301,7 @@ function NodeModal({ askLinkType, i18n, onSave, title, onValidate }) {
       </AlertModal>
     );
   }
-
+  console.log(values, 'node modal values');
   return (
     // <Formik
     //   initialValues={initialValues}
@@ -312,8 +315,7 @@ function NodeModal({ askLinkType, i18n, onSave, title, onValidate }) {
       isOpen={!error || !contentError}
       onClose={handleCancel}
       onSave={() => {
-        onValidate(validate);
-        handleSaveNode();
+        validate(values);
       }}
       steps={steps}
       css="overflow: scroll"
@@ -333,21 +335,16 @@ function NodeModal({ askLinkType, i18n, onSave, title, onValidate }) {
 }
 
 const NodeModalForm = ({ onSave, i18n, askLinkType, title }) => {
-  const [validateFn, setValidateFn] = useState(() => {});
   const onSaveForm = () => {};
-  const validateForm = validate => {
-    console.log('validate', validateFn);
-    setValidateFn(validate);
-  };
+
   return (
-    <Formik initialValues={{}} onSave={() => onSaveForm} validate={validateFn}>
+    <Formik initialValues={{}} onSave={() => onSaveForm}>
       {formik => (
         <Form autoComplete="off" onSubmit={formik.handleSubmit}>
           <NodeModal
             onSave={() => onSaveForm}
             i18n={i18n}
             title={title}
-            onValidate={validateForm}
             askLinkType={askLinkType}
           />
         </Form>
