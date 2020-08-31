@@ -16,6 +16,7 @@ import { InstanceGroupsLookup } from '../../../components/Lookup';
 import { getAddedAndRemoved } from '../../../util/lists';
 import { required, minMaxValue } from '../../../util/validators';
 import { FormColumnLayout } from '../../../components/FormLayout';
+import CredentialLookup from '../../../components/Lookup/CredentialLookup';
 
 function OrganizationFormFields({
   i18n,
@@ -24,6 +25,12 @@ function OrganizationFormFields({
   setInstanceGroups,
 }) {
   const [venvField] = useField('custom_virtualenv');
+
+  const [
+    galaxyCredentialsField,
+    galaxyCredentialsMeta,
+    galaxyCredentialsHelpers,
+  ] = useField('galaxy_credentials');
 
   const defaultVenv = {
     label: i18n._(t`Use Default Ansible Environment`),
@@ -85,6 +92,18 @@ function OrganizationFormFields({
         tooltip={i18n._(
           t`Select the Instance Groups for this Organization to run on.`
         )}
+      />
+      <CredentialLookup
+        credentialTypeNamespace="galaxy_api_token"
+        label={i18n._(t`Galaxy Credentials`)}
+        helperTextInvalid={galaxyCredentialsMeta.error}
+        isValid={!galaxyCredentialsMeta.touched || !galaxyCredentialsMeta.error}
+        onBlur={() => galaxyCredentialsHelpers.setTouched()}
+        onChange={value => {
+          galaxyCredentialsHelpers.setValue(value);
+        }}
+        value={galaxyCredentialsField.value}
+        multiple
       />
     </>
   );
@@ -160,6 +179,7 @@ function OrganizationForm({
         description: organization.description,
         custom_virtualenv: organization.custom_virtualenv || '',
         max_hosts: organization.max_hosts || '0',
+        galaxy_credentials: organization.galaxy_credentials || [],
       }}
       onSubmit={handleSubmit}
     >

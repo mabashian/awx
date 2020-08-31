@@ -20,19 +20,20 @@ const QS_CONFIG = getQSConfig('credentials', {
 });
 
 function CredentialLookup({
-  helperTextInvalid,
-  label,
-  isValid,
-  onBlur,
-  onChange,
-  required,
   credentialTypeId,
   credentialTypeKind,
   credentialTypeNamespace,
-  value,
+  helperTextInvalid,
   history,
   i18n,
+  isValid,
+  label,
+  multiple,
+  onBlur,
+  onChange,
+  required,
   tooltip,
+  value,
 }) {
   const {
     result: { count, credentials, relatedSearchableKeys, searchableKeys },
@@ -108,6 +109,7 @@ function CredentialLookup({
         onChange={onChange}
         required={required}
         qsConfig={QS_CONFIG}
+        multiple={multiple}
         renderOptionsList={({ state, dispatch, canDelete }) => (
           <OptionsList
             value={state.selectedItems}
@@ -142,6 +144,7 @@ function CredentialLookup({
             name="credential"
             selectItem={item => dispatch({ type: 'SELECT_ITEM', item })}
             deselectItem={item => dispatch({ type: 'DESELECT_ITEM', item })}
+            multiple={multiple}
           />
         )}
       />
@@ -176,6 +179,7 @@ CredentialLookup.propTypes = {
   helperTextInvalid: node,
   isValid: bool,
   label: string.isRequired,
+  multiple: bool,
   onBlur: func,
   onChange: func.isRequired,
   required: bool,
@@ -187,6 +191,7 @@ CredentialLookup.defaultProps = {
   credentialTypeKind: '',
   helperTextInvalid: '',
   isValid: true,
+  multiple: false,
   onBlur: () => {},
   required: false,
   value: null,
