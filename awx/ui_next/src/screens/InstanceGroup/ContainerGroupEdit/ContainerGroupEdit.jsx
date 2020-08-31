@@ -5,7 +5,6 @@ import { Card, PageSection } from '@patternfly/react-core';
 import { CardBody } from '../../../components/Card';
 import { InstanceGroupsAPI } from '../../../api';
 import ContainerGroupForm from '../shared/ContainerGroupForm';
-import { InstanceGroup } from '../../../types';
 import { jsonToYaml, isJsonString } from '../../../util/yaml';
 import useRequest from '../../../util/useRequest';
 import ContentError from '../../../components/ContentError';
@@ -92,11 +91,7 @@ function ContainerGroupEdit({ instanceGroup }) {
     <CardBody>
       <ContainerGroupForm
         instanceGroup={instanceGroup}
-        initialPodSpec={
-          instanceGroup.pod_spec_override
-            ? JSON.stringify(instanceGroup.pod_spec_override)
-            : initialPodSpec
-        }
+        initialPodSpec={initialPodSpec}
         onSubmit={handleSubmit}
         submitError={submitError}
         onCancel={handleCancel}
