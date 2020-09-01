@@ -108,7 +108,6 @@ function Visualizer({ template, i18n }) {
     showUnsavedChangesModal,
     unsavedChanges,
   } = state;
-  const [credsToAssociate, setCredsToAssociate] = useState([]);
   const handleVisualizerClose = () => {
     if (unsavedChanges) {
       dispatch({ type: 'TOGGLE_UNSAVED_CHANGES_MODAL' });
@@ -166,8 +165,6 @@ function Visualizer({ template, i18n }) {
 
     return associateNodeRequests;
   };
-  // const associateCredentials = [];
-  const disassociateCredentials = [];
 
   const disassociateNodes = (originalLinkMap, deletedNodeIds, linkMap) => {
     const disassociateNodeRequests = [];
@@ -276,6 +273,8 @@ function Visualizer({ template, i18n }) {
     const approvalTemplateRequests = [];
     const originalLinkMap = {};
     const deletedNodeIds = [];
+    const associateCredentialRequests = [];
+    const disassociateCredentialRequests = [];
     nodes.forEach(node => {
       // node with id=1 is the artificial start node
       if (node.id === 1) {
@@ -327,7 +326,7 @@ function Visualizer({ template, i18n }) {
           nodeRequests.push(
             WorkflowJobTemplatesAPI.createNode(template.id, {
               ...node.promptValues,
-              // unified_job_template: node.unifiedJobTemplate.id,
+              unified_job_template: node.unifiedJobTemplate.id,
             }).then(({ data }) => {
               node.originalNodeObject = data;
               originalLinkMap[node.id] = {
@@ -336,31 +335,20 @@ function Visualizer({ template, i18n }) {
                 failure_nodes: [],
                 always_nodes: [],
               };
-              if (node.promptValues?.removedCredentials?.length > 0) {
-                console.log(node.promptValues, 'removed cred');
-
-                node.promptValues.removedCredentials.forEach(cred => {
-                  disassociateCredentials.push(
-                    WorkflowJobTemplateNodesAPI.disassociateCredentials(
+              if (node.promptValues?.addedCredentials?.length > 0) {
+                node.promptValues.addedCredentials.forEach(cred => {
+                  // console.log(data, cred, 'added cred');
+                  // credsToAssociate.push({ nodeId: data.id, credId: cred });
+                  // // setCredsToAssociate([
+                  // //   ...credsToAssociate,
+                  // //   { nodeId: data.id, credId: cred },
+                  // // ]);
+                  associateCredentialRequests.push(
+                    WorkflowJobTemplateNodesAPI.associateCredentials(
                       data.id,
                       cred
                     )
                   );
-                });
-              }
-              if (node.promptValues?.addedCredentials?.length > 0) {
-                node.promptValues.addedCredentials.forEach(cred => {
-                  console.log(data, cred, 'added cred');
-                  setCredsToAssociate([
-                    ...credsToAssociate,
-                    { nodeId: data.id, credId: cred },
-                  ]);
-                  // associateCredentials.push(
-                  //   WorkflowJobTemplateNodesAPI.associateCredentials(
-                  //     data.id,
-                  //     cred
-                  //   )
-                  // );
                 });
               }
             })
@@ -407,7 +395,7 @@ function Visualizer({ template, i18n }) {
         }
       }
     });
-    debugger;
+
     await Promise.all(nodeRequests);
     // Creating approval templates needs to happen after the node has been created
     // since we reference the node in the approval template request.
@@ -419,17 +407,10 @@ function Visualizer({ template, i18n }) {
 
     await Promise.all(associateNodes(newLinks, originalLinkMap));
 
-    await Promise.all(disassociateCredentials);
-    await Promise.all(
-      credsToAssociate.map(cred =>
-        WorkflowJobTemplateNodesAPI.associateCredentials(
-          cred.nodeId,
-          cred.credId
-        )
-      )
-    );
+    await Promise.all(disassociateCredentialRequests);
+    await Promise.all(associateCredentialRequests);
 
-    // history.push(`/templates/workflow_job_template/${template.id}/details`);
+    history.push(`/templates/workflow_job_template/${template.id}/details`);
   };
 
   useEffect(() => {
