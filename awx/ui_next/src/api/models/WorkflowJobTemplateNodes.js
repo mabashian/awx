@@ -55,6 +55,20 @@ class WorkflowJobTemplateNodes extends Base {
   readCredentials(id) {
     return this.http.get(`${this.baseUrl}${id}/credentials/`);
   }
+
+  associateCredentials(id, credentialId) {
+    console.log('associate credentials')
+    return this.http.post(`${this.baseUrl}${id}/credentials/`, {
+      id: credentialId
+    });
+  }
+
+  disassociateCredentials(id, credentialId) {
+    return this.http.post(`${this.baseUrl}${id}/credentials/`, {
+      id: credentialId,
+      disassociate: true
+    });
+  }
 }
 
 export default WorkflowJobTemplateNodes;

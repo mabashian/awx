@@ -47,13 +47,7 @@ function NodeModal({ askLinkType, i18n, onSave, title }) {
   const history = useHistory();
   const dispatch = useContext(WorkflowDispatchContext);
   const { nodeToEdit } = useContext(WorkflowStateContext);
-  const {
-    initialValues,
-    values,
-    resetForm,
-    setTouched,
-    validateForm,
-  } = useFormikContext();
+  const { values, resetForm, setTouched, validateForm } = useFormikContext();
   let defaultApprovalDescription = '';
   let defaultApprovalName = '';
   let defaultApprovalTimeout = 0;
@@ -166,8 +160,7 @@ function NodeModal({ askLinkType, i18n, onSave, title }) {
             type: 'workflow_approval_template',
           }
         : nodeResource;
-
-    onSave(resource, askLinkType ? linkType : null);
+    onSave(resource, askLinkType ? linkType : null, values);
   };
 
   const handleCancel = () => {
@@ -301,20 +294,13 @@ function NodeModal({ askLinkType, i18n, onSave, title }) {
       </AlertModal>
     );
   }
-  console.log(values, 'node modal values');
   return (
-    // <Formik
-    //   initialValues={initialValues}
-    //   onSubmit={handleSaveNode}
-    //   validate={validate}
-    // >
-    // {({ validateForm, setTouched, errors }) => (
-    // console.log(initialValues, 'node modal values', errors, 'errors'),
     <Wizard
       footer={CustomFooter}
       isOpen={!error || !contentError}
       onClose={handleCancel}
       onSave={() => {
+        handleSaveNode();
         validate(values);
       }}
       steps={steps}
@@ -329,20 +315,20 @@ function NodeModal({ askLinkType, i18n, onSave, title }) {
         await validateForm();
       }}
     />
-    // )}
-    // </Formik>
   );
 }
 
 const NodeModalForm = ({ onSave, i18n, askLinkType, title }) => {
-  const onSaveForm = () => {};
+  const onSaveForm = (resource, linkType, values) => {
+    onSave(resource, linkType, values);
+  };
 
   return (
     <Formik initialValues={{}} onSave={() => onSaveForm}>
       {formik => (
         <Form autoComplete="off" onSubmit={formik.handleSubmit}>
           <NodeModal
-            onSave={() => onSaveForm}
+            onSave={onSaveForm}
             i18n={i18n}
             title={title}
             askLinkType={askLinkType}

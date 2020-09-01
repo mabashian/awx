@@ -1,4 +1,4 @@
-import React, { useEffect, useReducer } from 'react';
+import React, { useEffect, useReducer, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { withI18n } from '@lingui/react';
 import styled from 'styled-components';
@@ -108,7 +108,7 @@ function Visualizer({ template, i18n }) {
     showUnsavedChangesModal,
     unsavedChanges,
   } = state;
-
+  const [credsToAssociate, setCredsToAssociate] = useState([]);
   const handleVisualizerClose = () => {
     if (unsavedChanges) {
       dispatch({ type: 'TOGGLE_UNSAVED_CHANGES_MODAL' });
@@ -116,7 +116,22 @@ function Visualizer({ template, i18n }) {
       history.push(`/templates/workflow_job_template/${template.id}/details`);
     }
   };
+  // console.log(credsToAssociate, 'credsToAssociate');
+  // const associateCreds = () => {
+  //   console.log(credsToAssociate, 'build api calls');
+  //   const creds = [];
+  //   credsToAssociate.forEach(cred => {
+  //     console.log(cred, 'individual assoc. cred');
+  //     creds.push(
+  //       WorkflowJobTemplateNodesAPI.associateCredentials(
+  //         cred.nodeId,
+  //         cred.credId
+  //       )
+  //     );
+  //   });
 
+  //   return creds;
+  // };
   const associateNodes = (newLinks, originalLinkMap) => {
     const associateNodeRequests = [];
     newLinks.forEach(link => {
@@ -151,6 +166,8 @@ function Visualizer({ template, i18n }) {
 
     return associateNodeRequests;
   };
+  // const associateCredentials = [];
+  const disassociateCredentials = [];
 
   const disassociateNodes = (originalLinkMap, deletedNodeIds, linkMap) => {
     const disassociateNodeRequests = [];
@@ -285,6 +302,7 @@ function Visualizer({ template, i18n }) {
         );
       } else if (!node.isDeleted && !node.originalNodeObject) {
         if (node.unifiedJobTemplate.type === 'workflow_approval_template') {
+          console.log(node, 'workflow approval node');
           nodeRequests.push(
             WorkflowJobTemplatesAPI.createNode(template.id, {}).then(
               ({ data }) => {
@@ -308,7 +326,8 @@ function Visualizer({ template, i18n }) {
         } else {
           nodeRequests.push(
             WorkflowJobTemplatesAPI.createNode(template.id, {
-              unified_job_template: node.unifiedJobTemplate.id,
+              ...node.promptValues,
+              // unified_job_template: node.unifiedJobTemplate.id,
             }).then(({ data }) => {
               node.originalNodeObject = data;
               originalLinkMap[node.id] = {
@@ -317,6 +336,33 @@ function Visualizer({ template, i18n }) {
                 failure_nodes: [],
                 always_nodes: [],
               };
+              if (node.promptValues?.removedCredentials?.length > 0) {
+                console.log(node.promptValues, 'removed cred');
+
+                node.promptValues.removedCredentials.forEach(cred => {
+                  disassociateCredentials.push(
+                    WorkflowJobTemplateNodesAPI.disassociateCredentials(
+                      data.id,
+                      cred
+                    )
+                  );
+                });
+              }
+              if (node.promptValues?.addedCredentials?.length > 0) {
+                node.promptValues.addedCredentials.forEach(cred => {
+                  console.log(data, cred, 'added cred');
+                  setCredsToAssociate([
+                    ...credsToAssociate,
+                    { nodeId: data.id, credId: cred },
+                  ]);
+                  // associateCredentials.push(
+                  //   WorkflowJobTemplateNodesAPI.associateCredentials(
+                  //     data.id,
+                  //     cred
+                  //   )
+                  // );
+                });
+              }
             })
           );
         }
@@ -361,7 +407,7 @@ function Visualizer({ template, i18n }) {
         }
       }
     });
-
+    debugger;
     await Promise.all(nodeRequests);
     // Creating approval templates needs to happen after the node has been created
     // since we reference the node in the approval template request.
@@ -370,9 +416,20 @@ function Visualizer({ template, i18n }) {
     await Promise.all(
       disassociateNodes(originalLinkMap, deletedNodeIds, linkMap)
     );
+
     await Promise.all(associateNodes(newLinks, originalLinkMap));
 
-    history.push(`/templates/workflow_job_template/${template.id}/details`);
+    await Promise.all(disassociateCredentials);
+    await Promise.all(
+      credsToAssociate.map(cred =>
+        WorkflowJobTemplateNodesAPI.associateCredentials(
+          cred.nodeId,
+          cred.credId
+        )
+      )
+    );
+
+    // history.push(`/templates/workflow_job_template/${template.id}/details`);
   };
 
   useEffect(() => {
