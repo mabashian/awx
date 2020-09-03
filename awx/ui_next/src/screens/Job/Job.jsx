@@ -46,7 +46,7 @@ function Job({ i18n, lookup, setBreadcrumb }) {
     jobType = JOB_TYPE_URL_SEGMENTS[job.type];
   }
 
- const tabsArray = [
+  const tabsArray = [
     {
       name: (
         <>
