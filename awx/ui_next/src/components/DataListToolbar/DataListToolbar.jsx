@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import PropTypes from 'prop-types';
 import { withI18n } from '@lingui/react';
 import { t } from '@lingui/macro';
@@ -50,6 +50,20 @@ function DataListToolbar({
     setAdvancedSearchShown(shown);
     setKebabIsOpen(false);
   };
+
+  const onKebabModalChange = useCallback(isOpen => {
+    setKebabModalIsOpen(isOpen);
+  }, []);
+
+  // const onKebabModalChange = useCallback(
+  //   isOpen => {
+  //     if (kebabIsOpen && kebabModalIsOpen && !isOpen) {
+  //       setKebabIsOpen(false);
+  //     }
+  //     setKebabModalIsOpen(isOpen);
+  //   },
+  //   [kebabIsOpen, kebabModalIsOpen]
+  // );
 
   return (
     <Toolbar
@@ -108,12 +122,7 @@ function DataListToolbar({
             <KebabifiedProvider
               value={{
                 isKebabified: true,
-                onKebabModalChange: isOpen => {
-                  if (kebabIsOpen && kebabModalIsOpen && !isOpen) {
-                    setKebabIsOpen(false);
-                  }
-                  setKebabModalIsOpen(isOpen);
-                },
+                onKebabModalChange,
               }}
             >
               <Dropdown
