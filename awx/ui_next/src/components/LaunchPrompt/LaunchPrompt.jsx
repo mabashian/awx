@@ -40,6 +40,7 @@ function LaunchPrompt({ config, resource, onLaunch, onCancel, i18n }) {
       'credentials',
       values.credentials?.map(c => c.id)
     );
+    setValue('credential_passwords', values.credential_passwords);
     setValue('job_type', values.job_type);
     setValue('limit', values.limit);
     setValue('job_tags', values.job_tags);
