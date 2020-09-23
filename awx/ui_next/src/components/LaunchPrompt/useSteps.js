@@ -1,15 +1,18 @@
 import { useState } from 'react';
 import useInventoryStep from './steps/useInventoryStep';
 import useCredentialsStep from './steps/useCredentialsStep';
+import useCredentialPasswordsStep from './steps/useCredentialPasswordsStep';
 import useOtherPromptsStep from './steps/useOtherPromptsStep';
 import useSurveyStep from './steps/useSurveyStep';
 import usePreviewStep from './steps/usePreviewStep';
 
-export default function useSteps(config, resource, i18n) {
+export default function useSteps(config, resource, i18n, formRef) {
   const [visited, setVisited] = useState({});
+
   const steps = [
     useInventoryStep(config, resource, visited, i18n),
     useCredentialsStep(config, resource, visited, i18n),
+    useCredentialPasswordsStep(config, resource, visited, i18n, formRef),
     useOtherPromptsStep(config, resource, visited, i18n),
     useSurveyStep(config, resource, visited, i18n),
   ];
@@ -57,6 +60,7 @@ export default function useSteps(config, resource, i18n) {
       setVisited({
         inventory: true,
         credentials: true,
+        credential_passwords: true,
         other: true,
         survey: true,
         preview: true,

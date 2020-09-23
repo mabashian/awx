@@ -4,15 +4,13 @@ import { useHistory } from 'react-router-dom';
 import { withI18n } from '@lingui/react';
 import { t } from '@lingui/macro';
 import { useField } from 'formik';
-import { Form, ToolbarItem } from '@patternfly/react-core';
+import { ToolbarItem } from '@patternfly/react-core';
 import { CredentialsAPI, CredentialTypesAPI } from '../../../api';
-import useRequiredPasswords from '../useRequiredPasswords';
 import AnsibleSelect from '../../AnsibleSelect';
 import OptionsList from '../../OptionsList';
 import ContentLoading from '../../ContentLoading';
 import CredentialChip from '../../CredentialChip';
 import ContentError from '../../ContentError';
-import { PasswordField } from '../../FormField';
 import { getQSConfig, parseQueryString } from '../../../util/qs';
 import useRequest from '../../../util/useRequest';
 import { required } from '../../../util/validators';
@@ -23,12 +21,11 @@ const QS_CONFIG = getQSConfig('credential', {
   order_by: 'name',
 });
 
-function CredentialsStep({ config, i18n }) {
+function CredentialsStep({ i18n }) {
   const [field, , helpers] = useField({
     name: 'credentials',
     validate: required(null, i18n),
   });
-
   const [selectedType, setSelectedType] = useState(null);
   const history = useHistory();
 
@@ -90,11 +87,6 @@ function CredentialsStep({ config, i18n }) {
     fetchCredentials();
   }, [fetchCredentials]);
 
-  const { requiredSSHPasswords, requiredVaultPasswords } = useRequiredPasswords(
-    config,
-    field.value
-  );
-
   if (isTypesLoading || isCredentialsLoading) {
     return <ContentLoading />;
   }
@@ -116,123 +108,77 @@ function CredentialsStep({ config, i18n }) {
 
   return (
     <>
-      {config?.ask_credential_on_launch && (
-        <>
-          {types && types.length > 0 && (
-            <ToolbarItem css=" display: flex; align-items: center;">
-              <div css="flex: 0 0 25%; margin-right: 32px">
-                {i18n._(t`Selected Category`)}
-              </div>
-              <AnsibleSelect
-                css="flex: 1 1 75%;"
-                id="multiCredentialsLookUp-select"
-                label={i18n._(t`Selected Category`)}
-                data={types.map(type => ({
-                  key: type.id,
-                  value: type.id,
-                  label: type.name,
-                  isDisabled: false,
-                }))}
-                value={selectedType && selectedType.id}
-                onChange={(e, id) => {
-                  setSelectedType(types.find(o => o.id === parseInt(id, 10)));
-                }}
-              />
-            </ToolbarItem>
-          )}
-          <OptionsList
-            value={field.value || []}
-            options={credentials}
-            optionCount={count}
-            searchColumns={[
-              {
-                name: i18n._(t`Name`),
-                key: 'name__icontains',
-                isDefault: true,
-              },
-              {
-                name: i18n._(t`Created By (Username)`),
-                key: 'created_by__username__icontains',
-              },
-              {
-                name: i18n._(t`Modified By (Username)`),
-                key: 'modified_by__username__icontains',
-              },
-            ]}
-            sortColumns={[
-              {
-                name: i18n._(t`Name`),
-                key: 'name',
-              },
-            ]}
-            searchableKeys={searchableKeys}
-            relatedSearchableKeys={relatedSearchableKeys}
-            multiple={isVault}
-            header={i18n._(t`Credentials`)}
-            name="credentials"
-            qsConfig={QS_CONFIG}
-            readOnly={false}
-            selectItem={item => {
-              const hasSameVaultID = val =>
-                val?.inputs?.vault_id !== undefined &&
-                val?.inputs?.vault_id === item?.inputs?.vault_id;
-              const hasSameKind = val => val.kind === item.kind;
-              const newItems = field.value.filter(i =>
-                isVault ? !hasSameVaultID(i) : !hasSameKind(i)
-              );
-              newItems.push(item);
-              helpers.setValue(newItems);
+      {types && types.length > 0 && (
+        <ToolbarItem css=" display: flex; align-items: center;">
+          <div css="flex: 0 0 25%; margin-right: 32px">
+            {i18n._(t`Selected Category`)}
+          </div>
+          <AnsibleSelect
+            css="flex: 1 1 75%;"
+            id="multiCredentialsLookUp-select"
+            label={i18n._(t`Selected Category`)}
+            data={types.map(type => ({
+              key: type.id,
+              value: type.id,
+              label: type.name,
+              isDisabled: false,
+            }))}
+            value={selectedType && selectedType.id}
+            onChange={(e, id) => {
+              setSelectedType(types.find(o => o.id === parseInt(id, 10)));
             }}
-            deselectItem={item => {
-              helpers.setValue(field.value.filter(i => i.id !== item.id));
-            }}
-            renderItemChip={renderChip}
           />
-        </>
+        </ToolbarItem>
       )}
-      <Form>
-        {requiredSSHPasswords.includes('ssh_password') && (
-          <PasswordField
-            id="launch-prompt-ssh_password"
-            label={i18n._(t`SSH password`)}
-            name="credential_passwords.ssh_password"
-            validate={required(i18n._(t`This field must not be blank`), i18n)}
-            isRequired
-          />
-        )}
-        {requiredSSHPasswords.includes('ssh_key_unlock') && (
-          <PasswordField
-            id="launch-prompt-ssh_key_unlock"
-            label={i18n._(t`Private key passphrase`)}
-            name="credential_passwords.ssh_key_unlock"
-            validate={required(i18n._(t`This field must not be blank`), i18n)}
-            isRequired
-          />
-        )}
-        {requiredSSHPasswords.includes('become_password') && (
-          <PasswordField
-            id="launch-prompt-become_password"
-            label={i18n._(t`Privilege escalation password`)}
-            name="credential_passwords.become_password"
-            validate={required(i18n._(t`This field must not be blank`), i18n)}
-            isRequired
-          />
-        )}
-        {requiredVaultPasswords.map(vaultIdentifier => {
-          return (
-            <PasswordField
-              key={vaultIdentifier}
-              id={`launch-prompt-vault-${vaultIdentifier}`}
-              label={i18n._(t`Vault password - ${vaultIdentifier}`)}
-              name={`credential_passwords.['vault_password.${vaultIdentifier}']`}
-              validate={required(i18n._(t`This field must not be blank`), i18n)}
-              isRequired
-            />
-          );
-        })}
-      </Form>
+        <OptionsList
+          value={field.value || []}
+          options={credentials}
+          optionCount={count}
+          searchColumns={[
+            {
+              name: i18n._(t`Name`),
+              key: 'name__icontains',
+              isDefault: true,
+            },
+            {
+              name: i18n._(t`Created By (Username)`),
+              key: 'created_by__username__icontains',
+            },
+            {
+              name: i18n._(t`Modified By (Username)`),
+              key: 'modified_by__username__icontains',
+            },
+          ]}
+          sortColumns={[
+            {
+              name: i18n._(t`Name`),
+              key: 'name',
+            },
+          ]}
+          searchableKeys={searchableKeys}
+          relatedSearchableKeys={relatedSearchableKeys}
+          multiple={isVault}
+          header={i18n._(t`Credentials`)}
+          name="credentials"
+          qsConfig={QS_CONFIG}
+          readOnly={false}
+          selectItem={item => {
+            const hasSameVaultID = val =>
+              val?.inputs?.vault_id !== undefined &&
+              val?.inputs?.vault_id === item?.inputs?.vault_id;
+            const hasSameKind = val => val.kind === item.kind;
+            const newItems = field.value.filter(i =>
+              isVault ? !hasSameVaultID(i) : !hasSameKind(i)
+            );
+            newItems.push(item);
+            helpers.setValue(newItems);
+          }}
+          deselectItem={item => {
+            helpers.setValue(field.value.filter(i => i.id !== item.id));
+          }}
+          renderItemChip={renderChip}
+        />
     </>
   );
 }
-
 export default withI18n()(CredentialsStep);

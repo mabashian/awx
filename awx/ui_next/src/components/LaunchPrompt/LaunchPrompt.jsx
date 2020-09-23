@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Wizard } from '@patternfly/react-core';
 import { withI18n } from '@lingui/react';
 import { t } from '@lingui/macro';
@@ -10,6 +10,8 @@ import useSteps from './useSteps';
 import getSurveyValues from './getSurveyValues';
 
 function LaunchPrompt({ config, resource, onLaunch, onCancel, i18n }) {
+  const formRef = useRef(null);
+
   const {
     steps,
     initialValues,
@@ -18,7 +20,7 @@ function LaunchPrompt({ config, resource, onLaunch, onCancel, i18n }) {
     visitStep,
     visitAllSteps,
     contentError,
-  } = useSteps(config, resource, i18n);
+  } = useSteps(config, resource, i18n, formRef);
 
   if (contentError) {
     return <ContentError error={contentError} />;
@@ -54,7 +56,12 @@ function LaunchPrompt({ config, resource, onLaunch, onCancel, i18n }) {
   };
 
   return (
-    <Formik initialValues={initialValues} onSubmit={submit} validate={validate}>
+    <Formik
+      innerRef={formRef}
+      initialValues={initialValues}
+      onSubmit={submit}
+      validate={validate}
+    >
       {({ validateForm, setTouched, handleSubmit }) => (
         <Wizard
           isOpen
