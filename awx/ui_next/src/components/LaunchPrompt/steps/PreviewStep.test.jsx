@@ -104,7 +104,6 @@ describe('PreviewStep', () => {
       extra_vars: 'one: 1',
     });
   });
-
   test('should remove survey with empty array value', async () => {
     let wrapper;
     await act(async () => {

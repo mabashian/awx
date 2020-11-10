@@ -72,7 +72,7 @@ function PromptJobTemplateDetail({ i18n, resource }) {
       ? 'smart_inventory'
       : 'inventory';
 
-  const recentJobs = summary_fields.recent_jobs.map(job => ({
+  const recentJobs = summary_fields?.recent_jobs?.map(job => ({
     ...job,
     type: 'job',
   }));
@@ -149,7 +149,7 @@ function PromptJobTemplateDetail({ i18n, resource }) {
         label={i18n._(t`Webhook Service`)}
         value={toTitleCase(webhook_service)}
       />
-      {related.webhook_receiver && (
+      {related?.webhook_receiver && (
         <Detail
           label={i18n._(t`Webhook URL`)}
           value={`${window.location.origin}${related.webhook_receiver}`}

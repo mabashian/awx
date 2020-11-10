@@ -7,6 +7,7 @@ import {
   WorkflowDispatchContext,
   WorkflowStateContext,
 } from '../../../contexts/Workflow';
+import { getAddedAndRemoved } from '../../../util/lists';
 import { layoutGraph } from '../../../components/Workflow/WorkflowUtils';
 import ContentError from '../../../components/ContentError';
 import ContentLoading from '../../../components/ContentLoading';
@@ -45,6 +46,45 @@ const Wrapper = styled.div`
   flex-flow: column;
   height: 100%;
 `;
+
+const getAggregatedCredentials = (
+  originalNodeOverride = [],
+  templateDefaultCredentials = []
+) => {
+  let theArray = [];
+
+  const isCredentialOverriden = templateDefaultCred => {
+    let credentialHasOverride = false;
+    originalNodeOverride.forEach(overrideCred => {
+      if (
+        templateDefaultCred.credential_type === overrideCred.credential_type
+      ) {
+        if (
+          (!templateDefaultCred.vault_id && !overrideCred.inputs.vault_id) ||
+          (templateDefaultCred.vault_id &&
+            overrideCred.inputs.vault_id &&
+            templateDefaultCred.vault_id === overrideCred.inputs.vault_id)
+        ) {
+          credentialHasOverride = true;
+        }
+      }
+    });
+
+    return credentialHasOverride;
+  };
+
+  if (templateDefaultCredentials.length > 0) {
+    templateDefaultCredentials.forEach(defaultCred => {
+      if (!isCredentialOverriden(defaultCred)) {
+        theArray.push(defaultCred);
+      }
+    });
+  }
+
+  theArray = theArray.concat(originalNodeOverride);
+
+  return theArray;
+};
 
 const fetchWorkflowNodes = async (
   templateId,
@@ -259,6 +299,8 @@ function Visualizer({ template, i18n }) {
     const approvalTemplateRequests = [];
     const originalLinkMap = {};
     const deletedNodeIds = [];
+    const associateCredentialRequests = [];
+    const disassociateCredentialRequests = [];
     nodes.forEach(node => {
       // node with id=1 is the artificial start node
       if (node.id === 1) {
@@ -284,7 +326,7 @@ function Visualizer({ template, i18n }) {
           WorkflowJobTemplateNodesAPI.destroy(node.originalNodeObject.id)
         );
       } else if (!node.isDeleted && !node.originalNodeObject) {
-        if (node.unifiedJobTemplate.type === 'workflow_approval_template') {
+        if (node.fullUnifiedJobTemplate.type === 'workflow_approval_template') {
           nodeRequests.push(
             WorkflowJobTemplatesAPI.createNode(template.id, {}).then(
               ({ data }) => {
@@ -297,9 +339,9 @@ function Visualizer({ template, i18n }) {
                 };
                 approvalTemplateRequests.push(
                   WorkflowJobTemplateNodesAPI.createApprovalTemplate(data.id, {
-                    name: node.unifiedJobTemplate.name,
-                    description: node.unifiedJobTemplate.description,
-                    timeout: node.unifiedJobTemplate.timeout,
+                    name: node.fullUnifiedJobTemplate.name,
+                    description: node.fullUnifiedJobTemplate.description,
+                    timeout: node.fullUnifiedJobTemplate.timeout,
                   })
                 );
               }
@@ -308,7 +350,9 @@ function Visualizer({ template, i18n }) {
         } else {
           nodeRequests.push(
             WorkflowJobTemplatesAPI.createNode(template.id, {
-              unified_job_template: node.unifiedJobTemplate.id,
+              ...node.promptValues,
+              inventory: node.promptValues?.inventory?.id || null,
+              unified_job_template: node.fullUnifiedJobTemplate.id,
             }).then(({ data }) => {
               node.originalNodeObject = data;
               originalLinkMap[node.id] = {
@@ -317,15 +361,31 @@ function Visualizer({ template, i18n }) {
                 failure_nodes: [],
                 always_nodes: [],
               };
+              if (node.promptValues?.removedCredentials?.length > 0) {
+                node.promptValues.removedCredentials.forEach(cred => {
+                  disassociateCredentialRequests.push(
+                    WorkflowJobTemplateNodesAPI.disassociateCredentials(
+                      data.id,
+                      cred.id
+                    )
+                  );
+                });
+              }
+              if (node.promptValues?.addedCredentials?.length > 0) {
+                node.promptValues.addedCredentials.forEach(cred => {
+                  associateCredentialRequests.push(
+                    WorkflowJobTemplateNodesAPI.associateCredentials(
+                      data.id,
+                      cred.id
+                    )
+                  );
+                });
+              }
             })
           );
         }
       } else if (node.isEdited) {
-        if (
-          node.unifiedJobTemplate &&
-          (node.unifiedJobTemplate.unified_job_type === 'workflow_approval' ||
-            node.unifiedJobTemplate.type === 'workflow_approval_template')
-        ) {
+        if (node.fullUnifiedJobTemplate.type === 'workflow_approval_template') {
           if (
             node.originalNodeObject.summary_fields.unified_job_template
               .unified_job_type === 'workflow_approval'
@@ -334,9 +394,9 @@ function Visualizer({ template, i18n }) {
               WorkflowApprovalTemplatesAPI.update(
                 node.originalNodeObject.summary_fields.unified_job_template.id,
                 {
-                  name: node.unifiedJobTemplate.name,
-                  description: node.unifiedJobTemplate.description,
-                  timeout: node.unifiedJobTemplate.timeout,
+                  name: node.fullUnifiedJobTemplate.name,
+                  description: node.fullUnifiedJobTemplate.description,
+                  timeout: node.fullUnifiedJobTemplate.timeout,
                 }
               )
             );
@@ -345,19 +405,53 @@ function Visualizer({ template, i18n }) {
               WorkflowJobTemplateNodesAPI.createApprovalTemplate(
                 node.originalNodeObject.id,
                 {
-                  name: node.unifiedJobTemplate.name,
-                  description: node.unifiedJobTemplate.description,
-                  timeout: node.unifiedJobTemplate.timeout,
+                  name: node.fullUnifiedJobTemplate.name,
+                  description: node.fullUnifiedJobTemplate.description,
+                  timeout: node.fullUnifiedJobTemplate.timeout,
                 }
               )
             );
           }
         } else {
           nodeRequests.push(
-            WorkflowJobTemplateNodesAPI.update(node.originalNodeObject.id, {
-              unified_job_template: node.unifiedJobTemplate.id,
+            WorkflowJobTemplateNodesAPI.replace(node.originalNodeObject.id, {
+              ...node.promptValues,
+              inventory: node.promptValues?.inventory?.id || null,
+              unified_job_template: node.fullUnifiedJobTemplate.id,
             })
           );
+
+          const {
+            added: addedCredentials,
+            removed: removedCredentials,
+          } = getAddedAndRemoved(
+            getAggregatedCredentials(
+              node?.originalNodeCredentials,
+              node.launchConfig?.defaults?.credentials
+            ),
+            node.promptValues?.credentials
+          );
+
+          if (addedCredentials.length > 0) {
+            addedCredentials.forEach(cred => {
+              associateCredentialRequests.push(
+                WorkflowJobTemplateNodesAPI.associateCredentials(
+                  node.originalNodeObject.id,
+                  cred.id
+                )
+              );
+            });
+          }
+          if (removedCredentials?.length > 0) {
+            removedCredentials.forEach(cred =>
+              disassociateCredentialRequests.push(
+                WorkflowJobTemplateNodesAPI.disassociateCredentials(
+                  node.originalNodeObject.id,
+                  cred.id
+                )
+              )
+            );
+          }
         }
       }
     });
@@ -371,6 +465,9 @@ function Visualizer({ template, i18n }) {
       disassociateNodes(originalLinkMap, deletedNodeIds, linkMap)
     );
     await Promise.all(associateNodes(newLinks, originalLinkMap));
+
+    await Promise.all(disassociateCredentialRequests);
+    await Promise.all(associateCredentialRequests);
 
     history.push(`/templates/workflow_job_template/${template.id}/details`);
   };
