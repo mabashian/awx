@@ -37,6 +37,7 @@ class ListHeader extends React.Component {
   }
 
   handleSearch(key, value) {
+    console.log('searching');
     const { location, qsConfig } = this.props;
     let params = parseQueryString(qsConfig, location.search);
     params = mergeParams(params, { [key]: value });
