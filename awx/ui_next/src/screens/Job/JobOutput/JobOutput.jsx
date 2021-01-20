@@ -308,8 +308,6 @@ function JobOutput({
   }, []);
 
   useEffect(() => {
-    // recompute row heights for any job events that have transitioned
-    // from loading to loaded
     if (listRef.current?.recomputeRowHeights) {
       listRef.current.recomputeRowHeights();
     }
@@ -326,37 +324,48 @@ function JobOutput({
 
     if (isMounted.current) {
       setHasContentLoading(true);
-      setCurrentlyLoading(currentlyLoading.concat(loadRange));
+      setCurrentlyLoading(prevCurrentlyLoading =>
+        prevCurrentlyLoading.concat(loadRange)
+      );
     }
 
     try {
       const {
-        data: { results: newResults = [], count },
+        data: { results: fetchedEvents = [], count },
       } = await JobsAPI.readEvents(job.id, type, {
         page_size: 50,
         order_by: 'start_line',
       });
 
       if (isMounted.current) {
-        const updatedResults = { ...results };
+        const newResults = {};
         let newResultsCssMap = {};
-        newResults.forEach(jobEvent => {
-          updatedResults[jobEvent.counter] = jobEvent;
+        fetchedEvents.forEach(jobEvent => {
+          newResults[jobEvent.counter] = jobEvent;
           const { lineCssMap } = getLineTextHtml(jobEvent);
           newResultsCssMap = { ...newResultsCssMap, ...lineCssMap };
         });
-        setResults(updatedResults);
+        setResults(prevResults => ({
+          ...prevResults,
+          ...newResults,
+        }));
         setRemoteRowCount(count + 1);
-        setCssMap(newResultsCssMap);
+        setCssMap(prevCssMap => ({
+          ...prevCssMap,
+          ...newResultsCssMap,
+        }));
       }
     } catch (err) {
       setContentError(err);
     } finally {
       if (isMounted.current) {
         setHasContentLoading(false);
-        setCurrentlyLoading(
-          currentlyLoading.filter(n => !loadRange.includes(n))
+        setCurrentlyLoading(prevCurrentlyLoading =>
+          prevCurrentlyLoading.filter(n => !loadRange.includes(n))
         );
+        loadRange.forEach(n => {
+          cache.clear(n);
+        });
       }
     }
   };
@@ -448,7 +457,9 @@ function JobOutput({
     const loadRange = range(startIndex, stopIndex);
 
     if (isMounted.current) {
-      setCurrentlyLoading(currentlyLoading.concat(loadRange));
+      setCurrentlyLoading(prevCurrentlyLoading =>
+        prevCurrentlyLoading.concat(loadRange)
+      );
     }
 
     const params = {
@@ -459,18 +470,27 @@ function JobOutput({
 
     return JobsAPI.readEvents(job.id, type, params).then(response => {
       if (isMounted.current) {
-        const updatedResults = { ...results };
+        const newResults = {};
         let newResultsCssMap = {};
         response.data.results.forEach(jobEvent => {
-          updatedResults[jobEvent.counter] = jobEvent;
+          newResults[jobEvent.counter] = jobEvent;
           const { lineCssMap } = getLineTextHtml(jobEvent);
           newResultsCssMap = { ...newResultsCssMap, ...lineCssMap };
         });
-        setResults(updatedResults);
-        setCssMap(newResultsCssMap);
-        setCurrentlyLoading(
-          currentlyLoading.filter(n => !loadRange.includes(n))
+        setResults(prevResults => ({
+          ...prevResults,
+          ...newResults,
+        }));
+        setCssMap(prevCssMap => ({
+          ...prevCssMap,
+          ...newResultsCssMap,
+        }));
+        setCurrentlyLoading(prevCurrentlyLoading =>
+          prevCurrentlyLoading.filter(n => !loadRange.includes(n))
         );
+        loadRange.forEach(n => {
+          cache.clear(n);
+        });
       }
     });
   };
