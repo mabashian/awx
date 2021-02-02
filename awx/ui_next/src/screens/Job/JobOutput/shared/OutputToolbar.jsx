@@ -2,7 +2,7 @@ import React from 'react';
 import styled from 'styled-components';
 import { withI18n } from '@lingui/react';
 import { t } from '@lingui/macro';
-import { shape, func } from 'prop-types';
+import { bool, shape, func } from 'prop-types';
 import {
   DownloadIcon,
   RocketIcon,
@@ -58,7 +58,7 @@ const OUTPUT_NO_COUNT_JOB_TYPES = [
   'inventory_update',
 ];
 
-const OutputToolbar = ({ i18n, job, onDelete }) => {
+const OutputToolbar = ({ i18n, isDeleteDisabled, job, onDelete }) => {
   const hideCounts = OUTPUT_NO_COUNT_JOB_TYPES.includes(job.type);
 
   const playCount = job?.playbook_counts?.play_count;
@@ -156,6 +156,7 @@ const OutputToolbar = ({ i18n, job, onDelete }) => {
             modalTitle={i18n._(t`Delete Job`)}
             onConfirm={onDelete}
             variant="plain"
+            isDisabled={isDeleteDisabled}
           >
             <TrashAltIcon />
           </DeleteButton>
@@ -166,8 +167,13 @@ const OutputToolbar = ({ i18n, job, onDelete }) => {
 };
 
 OutputToolbar.propTypes = {
+  isDeleteDisabled: bool,
   job: shape({}).isRequired,
   onDelete: func.isRequired,
+};
+
+OutputToolbar.defaultProps = {
+  isDeleteDisabled: false,
 };
 
 export default withI18n()(OutputToolbar);

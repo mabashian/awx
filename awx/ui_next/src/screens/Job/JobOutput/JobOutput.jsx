@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useHistory, useLocation, withRouter } from 'react-router-dom';
 import { I18n } from '@lingui/react';
 import { t } from '@lingui/macro';
@@ -37,6 +37,7 @@ import HostEventModal from './HostEventModal';
 import { HostStatusBar, OutputToolbar } from './shared';
 import getRowRangePageSize from './shared/jobOutputUtils';
 import isJobRunning from '../../../util/jobs';
+import useRequest, { useDismissableError } from '../../../util/useRequest';
 import {
   encodeNonDefaultQueryString,
   parseQueryString,
@@ -292,7 +293,6 @@ function JobOutput({
   const interval = useRef(null);
   const history = useHistory();
   const [contentError, setContentError] = useState(null);
-  const [deletionError, setDeletionError] = useState(null);
   const [hasContentLoading, setHasContentLoading] = useState(true);
   const [results, setResults] = useState({});
   const [currentlyLoading, setCurrentlyLoading] = useState([]);
@@ -330,6 +330,37 @@ function JobOutput({
       listRef.current.recomputeRowHeights();
     }
   }, [currentlyLoading, cssMap, remoteRowCount]);
+
+  const {
+    request: deleteJob,
+    isLoading: isDeleteLoading,
+    error: deleteError,
+  } = useRequest(
+    useCallback(async () => {
+      switch (job.type) {
+        case 'project_update':
+          await ProjectUpdatesAPI.destroy(job.id);
+          break;
+        case 'system_job':
+          await SystemJobsAPI.destroy(job.id);
+          break;
+        case 'workflow_job':
+          await WorkflowJobsAPI.destroy(job.id);
+          break;
+        case 'ad_hoc_command':
+          await AdHocCommandsAPI.destroy(job.id);
+          break;
+        case 'inventory_update':
+          await InventoriesAPI.destroy(job.id);
+          break;
+        default:
+          await JobsAPI.destroy(job.id);
+      }
+      history.push('/jobs');
+    }, [job, history])
+  );
+
+  const { error, dismissError } = useDismissableError(deleteError);
 
   const monitorJobSocketCounter = () => {
     if (jobSocketCounter.current === remoteRowCount) {
@@ -383,33 +414,6 @@ function JobOutput({
           cache.clear(n);
         });
       }
-    }
-  };
-
-  const handleDeleteJob = async () => {
-    try {
-      switch (job.type) {
-        case 'project_update':
-          await ProjectUpdatesAPI.destroy(job.id);
-          break;
-        case 'system_job':
-          await SystemJobsAPI.destroy(job.id);
-          break;
-        case 'workflow_job':
-          await WorkflowJobsAPI.destroy(job.id);
-          break;
-        case 'ad_hoc_command':
-          await AdHocCommandsAPI.destroy(job.id);
-          break;
-        case 'inventory_update':
-          await InventoriesAPI.destroy(job.id);
-          break;
-        default:
-          await JobsAPI.destroy(job.id);
-      }
-      history.push('/jobs');
-    } catch (err) {
-      setDeletionError(err);
     }
   };
 
@@ -673,7 +677,11 @@ function JobOutput({
                 <StatusIcon status={job.status} />
                 <h1>{job.name}</h1>
               </HeaderTitle>
-              <OutputToolbar job={job} onDelete={handleDeleteJob} />
+              <OutputToolbar
+                job={job}
+                onDelete={deleteJob}
+                isDeleteDisabled={isDeleteLoading}
+              />
             </OutputHeader>
             <HostStatusBar counts={job.host_status_counts} />
             <Toolbar
@@ -739,15 +747,15 @@ function JobOutput({
               <OutputFooter />
             </OutputWrapper>
           </CardBody>
-          {deletionError && (
+          {error && (
             <AlertModal
-              isOpen={deletionError}
+              isOpen={error}
               variant="danger"
-              onClose={() => setDeletionError(null)}
+              onClose={dismissError}
               title={i18n._(t`Job Delete Error`)}
               label={i18n._(t`Job Delete Error`)}
             >
-              <ErrorDetail error={deletionError} />
+              <ErrorDetail error={error} />
             </AlertModal>
           )}
         </>
